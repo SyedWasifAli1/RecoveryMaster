@@ -1,0 +1,2 @@
+D:/jaffsons/london_computers/android/app/.cxx/Debug/2d6b5e3b/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/jaffsons/london_computers/android/app/.cxx/Debug/2d6b5e3b/arm64-v8a/CMakeFiles/rebuild_cache.dir

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase Firestore Import
 import 'package:london_computers/FundsTransfer/FundsTransferPage.dart';
@@ -7,6 +9,8 @@ import 'package:london_computers/Recharge/recharge.dart';
 import 'package:london_computers/FindUser/finduser.dart';
 import 'package:london_computers/colors/colors.dart'; // Import the colors file
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 class DashboardPage extends StatefulWidget {
   @override
   _DashboardPageState createState() => _DashboardPageState();
@@ -14,7 +18,9 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String collectorName = "Loading...";  // Default
+  int totalPayments =0;  // Default
   String collectorId = "Loading..."; // Default
+    StreamSubscription<DocumentSnapshot>? _subscription;
 
   @override
   void initState() {
@@ -23,43 +29,49 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // ✅ Firestore se Collector Data Fetch Karna
-  void fetchCollectorDetails() async {
-    try {
-      // Collector ID (Hardcoded, isko dynamic bhi bana sakte ho)
-       User? user = FirebaseAuth.instance.currentUser;
-
+ 
+  void fetchCollectorDetails() {
+    User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       print("No user logged in!");
       return;
     }
 
-    final String userId = user.uid; 
+    final String userId = user.uid;
 
-      // Firestore se Document Fetch
-      DocumentSnapshot collectorDoc = await FirebaseFirestore.instance
-          .collection('collectors')
-          .doc(userId)
-          .get();
-
+    _subscription = FirebaseFirestore.instance
+        .collection('collectors')
+        .doc(userId)
+        .snapshots() // ✅ Real-time updates
+        .listen((collectorDoc) {
       if (collectorDoc.exists) {
         setState(() {
+            collectorId = generateNumericHash(userId);
+          totalPayments = (collectorDoc['totalPayments'] ?? 0) as int;
           collectorName = collectorDoc['name'] ?? "Unknown";
-          collectorId = collectorDoc['collectorId'] ?? "Unknown";
         });
       } else {
         setState(() {
           collectorName = "Not Found";
           collectorId = "N/A";
+          totalPayments = 0;
         });
       }
-    } catch (e) {
+    }, onError: (error) {
       setState(() {
         collectorName = "Error";
         collectorId = "Error";
+        totalPayments = 0;
       });
-    }
+      print("Error fetching real-time data: $error");
+    });
   }
-
+ 
+   @override
+  void dispose() {
+    _subscription?.cancel(); // ✅ Memory leak avoid karne ke liye
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,8 +150,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'PKR 250,294',
+                   Text(
+                    'PKR ${totalPayments}',
                     style: TextStyle(fontSize: 50, color: AppColors.balanceTextColor, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -236,3 +248,8 @@ final List<Map<String, dynamic>> _dashboardItems = [
   {'title': 'User ', 'iconPath': 'assets/user.jpg', 'destinationPage': DashboardPage()},
   {'title': 'Recharge', 'iconPath': 'assets/fundtransfer.jpg', 'destinationPage': RechargePage()},
 ];
+String generateNumericHash(String id) {
+  var bytes = utf8.encode(id);
+  var digest = sha256.convert(bytes).toString();
+  return (int.parse(digest.substring(0, 10), radix: 16) % 1000000).toString(); // ✅ Modulo added
+}

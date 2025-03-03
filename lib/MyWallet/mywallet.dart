@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -56,10 +58,35 @@ num totalPayments = 0;
   _fetchTotalPayments();
     _fetchTransactions(); // Fetch transactions from Firestore when the page is loaded
   }
+StreamSubscription<DocumentSnapshot>? _totalPaymentsSubscription;
+
+
+void _fetchTotalPayments() {
+  final user = _auth.currentUser;
+  if (user == null) return;
+
+  // ✅ Firestore Real-time Listener
+  _totalPaymentsSubscription = _firestore
+      .collection('collectors')
+      .doc(user.uid)
+      .snapshots() // ✅ Listen to real-time updates
+      .listen((userDoc) {
+    final fetchedTotal = userDoc.data()?['totalPayments'] ?? 0;
+
+    setState(() {
+      totalPayments = fetchedTotal; // ✅ Update UI automatically
+    });
+
+    print("🔥 Real-time Total Payments: $totalPayments"); // ✅ Debugging
+  }, onError: (error) {
+    print("❌ Error fetching real-time totalPayments: $error");
+  });
+}
 
   @override
   void dispose() {
     _animationController.dispose();
+  _totalPaymentsSubscription?.cancel(); // ✅ Stop listening on dispose
     super.dispose();
   }
 
@@ -109,19 +136,8 @@ Future<void> _fetchTransactions() async {
   //   return totalAmount;
   // }
 
-void _fetchTotalPayments() async {
-  final user = _auth.currentUser;
-  if (user == null) return;
+// ✅ Dispose listener to avoid memory leaks
 
-  final userDoc = await _firestore.collection('collectors').doc(user.uid).get();
-  final fetchedTotal = userDoc.data()?['totalPayments'] ?? 0;
-
-  setState(() {
-    totalPayments = fetchedTotal; // Update variable
-  });
-
-  print("Total Payments: $totalPayments"); // Console pe print karna
-}
 
 
 

@@ -37,7 +37,9 @@ class _FundsTransferPageState extends State<FundsTransferPage>
   }
 
 
-  Future<void> _saveTransferToFirestore(String name, String amount) async {
+
+
+Future<void> _saveTransferToFirestore( String name, String amount) async {
   try {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -56,9 +58,31 @@ class _FundsTransferPageState extends State<FundsTransferPage>
     final userDoc = await userRef.get();
     num currentTotalPayments = userDoc.data()?['totalPayments'] ?? 0;
 
-    // totalPayments me se transferAmount minus karna
-    num updatedTotalPayments = currentTotalPayments - transferAmount;
-    if (updatedTotalPayments < 0) updatedTotalPayments = 0; // Negative hone se rokna
+    // ✅ Agar transfer amount zyada ho toh error show karna
+    if (transferAmount > currentTotalPayments) {
+      _showErrorDialog(context, "Insufficient Balance", 
+        "You don't have enough balance to transfer $transferAmount PKR.");
+      return; // ❌ Process yahin stop ho jayega
+    }else{
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Transfer Complete', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: Text('Your funds have been successfully transferred.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.of(context).pop(); // Go back to the previous page
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+      num updatedTotalPayments = currentTotalPayments - transferAmount;
 
     // totalPayments update karna Firestore pe
     await userRef.update({'totalPayments': updatedTotalPayments});
@@ -71,12 +95,39 @@ class _FundsTransferPageState extends State<FundsTransferPage>
       'collectorId': userUid, // ✅ Collector ID directly store ho rahi hai
     });
 
-    print("Transfer data saved to Firestore & totalPayments updated");
+    print("✅ Transfer successful & totalPayments updated");
+
+
+      
+        }
+
+
+    // totalPayments me se transferAmount minus karna
 
   } catch (e) {
-    print("Error saving transfer data: $e");
+    print("❌ Error saving transfer data: $e");
   }
 }
+
+// ✅ Pop-up Dialog for Error
+void _showErrorDialog(BuildContext context, String title, String message) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), // Close dialog
+            child: Text("OK"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
 // Future<void> _saveTransferToFirestore(String name, String amount) async {
 //   try {
@@ -201,24 +252,7 @@ class _FundsTransferPageState extends State<FundsTransferPage>
       _saveTransferToFirestore(name, amount);
 
       // Show success message
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Transfer Complete', style: TextStyle(fontWeight: FontWeight.bold)),
-            content: Text('Your funds have been successfully transferred.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  Navigator.of(context).pop(); // Go back to the previous page
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
+      
     });
   }
 

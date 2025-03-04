@@ -700,6 +700,7 @@
 
 
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:london_computers/colors/colors.dart';
@@ -774,7 +775,10 @@ class _PaymentPageState extends State<PaymentPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
               child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('payments').snapshots(),
+                stream: _firestore
+        .collection('payments')
+        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid) // Filter by current user
+        .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return Center(child: CircularProgressIndicator());
@@ -792,6 +796,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   );
                 },
               ),
+           
             ),
           ),
           const SizedBox(height: 16),
@@ -829,68 +834,74 @@ class _PaymentPageState extends State<PaymentPage> {
             child: Text('Pick Date to Filter'),
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('payments').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(child: CircularProgressIndicator());
-                }
+      Expanded(
+  child: StreamBuilder<QuerySnapshot>(
+    stream: _firestore
+        .collection('payments')
+        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid) // Filter by current user
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        return Center(child: Text("No payments found", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)));
+      }
 
-                List<Client> clients = snapshot.data!.docs.map((doc) {
-                  return Client(
-                    id: doc['customerId'],
-                    name: doc['customerName'],
-                    // phone: '',
-                    lastPaid: (doc['amount'] as num).toDouble(),
-                    paymentDate: (doc['paymentDate'] as Timestamp).toDate(),
-                  );
-                }).toList();
-  clients.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
-                // Search filter
-                if (searchController.text.isNotEmpty) {
-                  clients = clients.where((client) =>
-                      client.name.toLowerCase().contains(searchController.text.toLowerCase())).toList();
-                }
+      List<Client> clients = snapshot.data!.docs.map((doc) {
+        return Client(
+          id: doc['customerId'],
+          name: doc['customerName'],
+          lastPaid: (doc['amount'] as num).toDouble(),
+          paymentDate: (doc['paymentDate'] as Timestamp).toDate(),
+        );
+      }).toList();
 
-                return ListView.builder(
-                  itemCount: clients.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      elevation: 8,
-                      shadowColor: Colors.grey.withOpacity(0.2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        title: Text(
-                          clients[index].name,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Customer ID: ${clients[index].id}'),
-                            Text('Last Paid: PKR ${clients[index].lastPaid}'),
-                            Text('Payment Date: ${DateFormat.yMMMd().format(clients[index].paymentDate)}'),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
+      clients.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+
+      // Search filter
+      if (searchController.text.isNotEmpty) {
+        clients = clients
+            .where((client) => client.name.toLowerCase().contains(searchController.text.toLowerCase()))
+            .toList();
+      }
+
+      return ListView.builder(
+        itemCount: clients.length,
+        itemBuilder: (context, index) {
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 8,
+            shadowColor: Colors.grey.withOpacity(0.2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ),
-      
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              title: Text(
+                clients[index].name,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Customer ID: ${clients[index].id}'),
+                  Text('Last Paid: PKR ${clients[index].lastPaid}'),
+                  Text('Payment Date: ${DateFormat.yMMMd().format(clients[index].paymentDate)}'),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  ),
+),
+
         ],
       ),
+    
     );
   }
 }

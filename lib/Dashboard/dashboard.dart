@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase Firestore Import
+import 'package:london_computers/Auth/auth_service.dart';
 import 'package:london_computers/FundsTransfer/FundsTransferPage.dart';
 import 'package:london_computers/MyWallet/mywallet.dart';
 import 'package:london_computers/Payment/Payments.dart';
@@ -38,6 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     final String userId = user.uid;
+print(userId);
 
     _subscription = FirebaseFirestore.instance
         .collection('collectors')
@@ -46,7 +48,7 @@ class _DashboardPageState extends State<DashboardPage> {
         .listen((collectorDoc) {
       if (collectorDoc.exists) {
         setState(() {
-            collectorId = generateNumericHash(userId);
+            collectorId = generateNumericHash(userId) ;
           totalPayments = (collectorDoc['totalPayments'] ?? 0) as int;
           collectorName = collectorDoc['name'] ?? "Unknown";
         });
@@ -75,6 +77,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+    
       body: Column(
         children: [
           // ✅ AppBar Section
@@ -118,6 +121,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             color: AppColors.textColorLight,
                           ),
                         ),
+            
                       ],
                     ),
                   ),

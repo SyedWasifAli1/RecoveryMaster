@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:london_computers/colors/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:london_computers/colors/colors.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -59,7 +60,7 @@ print('Package exists: ${packageDoc.exists}');
       // Extract package details
       String packageName = packageDoc['name'] ?? 'N/A';
       double packagePrice = (packageDoc['price'] ?? 0).toDouble();
-      String packageSize = packageDoc['size'] ?? 'N/A';
+      // String packageSize = packageDoc['size'] ?? 'N/A';
 
       // Fetch discount from the customer data
           double discountPercentage = (data['discount']  ?? 0).toDouble();
@@ -80,7 +81,7 @@ print('Package exists: ${packageDoc.exists}');
         selectedPackage: packageId,
         packageName: packageName,
         packagePrice: packagePrice,
-        packageSize: packageSize,
+        // packageSize: packageSize,
       );
 
       clientList.add(client);
@@ -214,7 +215,7 @@ class Client {
   final String selectedPackage; // packageId
   final String packageName; // Add packageName
   final double packagePrice; // Add packagePrice
-  final String packageSize; // Add packageSize
+  // final String packageSize; // Add packageSize
 
   Client({
     required this.id,
@@ -225,326 +226,191 @@ class Client {
     required this.selectedPackage,
     required this.packageName,
     required this.packagePrice,
-    required this.packageSize,
+    // required this.packageSize,
   });
 }
 class ClientDetailsPage extends StatelessWidget {
   final Client client;
 
-  ClientDetailsPage({required this.client});
+  ClientDetailsPage({Key? key, required this.client}) : super(key: key);
 
   final TextEditingController amountController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance; // FirebaseAuth instance to get UID
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          Stack(
-            children: [
-              Container(
-                height: 180,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primaryColor_g1, AppColors.primaryColor_g2],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(50),
-                    bottomRight: Radius.circular(50),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 80,
-                left: 20,
-                child: IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppColors.textColor, size: 30),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-              Positioned.fill(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 80),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          client.name,
-                          style: const TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'User ID: ${client.id}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: AppColors.textColor_2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
+          _buildHeader(context),
           const SizedBox(height: 16),
-          // Client Info Card with Gradient Background
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              elevation: 10,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              shadowColor: Colors.black.withOpacity(0.2),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.cardBackgroundColor, AppColors.cardBackgroundColor],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Phone: ${client.phone}',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.shadowColor,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Monthly Billing: \PKR ${client.monthlyBilling}',
-                        style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryColor
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Last Paid Amount: \PKR ${client.lastPaid}',
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.shadowColor
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 30), // Space below info card
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 18),
-                Text(
-                  'Cash Collection',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                TextField(
-                  controller: amountController,
-                  decoration: InputDecoration(
-                    labelText: 'Enter Amount',
-                    labelStyle: TextStyle(color: Colors.grey[600]),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide(color: Colors.blue.shade400),
-                    ),
-                    prefixIcon: Icon(Icons.money, color: Colors.blue.shade600),
-                    filled: true,
-                    fillColor: Colors.blue.shade50,
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  ),
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(fontSize: 30),
-                ),
-              ],
-            ),
-          ),
-
+          _buildClientInfoCard(),
           const SizedBox(height: 30),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                gradient: LinearGradient(
-                  colors: [Color(0xFF4CAF50), Color(0xFF81C784)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-              ),
-              child: ElevatedButton(
-                onPressed: () async {
-                  final amount = double.tryParse(amountController.text);
-                  if (amount != null && amount > 0) {
-                    await _storePaymentData(amount);
-                    _showPaymentReceivedDialog(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Please enter a valid amount')),
-                    );
-                  }
-                },
-                child: Text(
-                  'Submit Payment',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 18, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ),
+          Expanded(child: _buildPaymentList()),
         ],
       ),
     );
   }
 
-
-  Future<void> _storePaymentData(double amount) async {
-  try {
-    final paymentDate = DateTime.now();
-    final user = _auth.currentUser; // Get the current logged-in user
-
-    if (user != null) {
-      // Firestore instance
-      final userRef = _firestore.collection('collectors').doc(user.uid);
-
-      // Fetch the current user's document
-      final userDoc = await userRef.get();
-
-      double totalPayments = 0.0; // Default value if not present
-
-      if (userDoc.exists && userDoc.data() != null) {
-        totalPayments = (userDoc.data()!['totalPayments'] ?? 0.0).toDouble();
-      }
-
-      // Add new payment
-      await _firestore.collection('payments').add({
-        'amount': amount,
-        'customerId': client.id,
-        'customerName': client.name,
-        'paymentDate': paymentDate,
-        'userId': user.uid,
-      });
-
-      // Update the user's totalPayments field
-      await userRef.update({
-        'totalPayments': totalPayments + amount,
-      });
-
-      print('Payment stored and totalPayments updated successfully');
-    }
-  } catch (e) {
-    print('Error storing payment: $e');
+  Widget _buildHeader(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primaryColor_g1, AppColors.primaryColor_g2],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(50),
+              bottomRight: Radius.circular(50),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 80,
+          left: 20,
+          child: IconButton(
+            icon: Icon(Icons.arrow_back, color: AppColors.textColor, size: 30),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        Positioned.fill(
+          child: Align(
+            alignment: Alignment.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 80),
+                Text(
+                  client.name,
+                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                Text(
+                  'User ID: ${client.id}',
+                  style: const TextStyle(fontSize: 16, color: AppColors.textColor_2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
-}
 
-
-  // Future<void> _storePaymentData(double amount) async {
-  //   try {
-  //     final paymentDate = DateTime.now();
-  //     final user = _auth.currentUser; // Get the current logged-in user
-
-  //     if (user != null) {
-  //       await _firestore.collection('payments').add({
-  //         'amount': amount,
-  //         'customerId': client.id,
-  //         'customerName': client.name,
-  //         'paymentDate': paymentDate,
-  //         'userId': user.uid, // Store the UID of the logged-in user
-  //       });
-
-  //       print('Payment stored successfully');
-  //     }
-  //   } catch (e) {
-  //     print('Error storing payment: $e');
-  //   }
-  // }
-
-
-  void _showPaymentReceivedDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Center(
-            child: Text(
-              'Payment Received',
-              style: TextStyle(fontWeight: FontWeight.bold),
+  Widget _buildClientInfoCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        elevation: 10,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shadowColor: Colors.black.withOpacity(0.2),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.cardBackgroundColor, AppColors.cardBackgroundColor],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _infoText('Phone: ${client.phone}', AppColors.shadowColor),
+                _infoText('Monthly Billing: PKR ${client.monthlyBilling}', AppColors.primaryColor, fontSize: 25),
+                _infoText('Last Paid Amount: PKR ${client.lastPaid}', AppColors.shadowColor),
+              ],
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Billing ID: ${client.id}', style: TextStyle(fontSize: 16)),
-              Text('${client.name}', style: TextStyle(fontSize: 22)),
-              Text('PKR ${amountController.text}', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Icon(Icons.check_circle, color: Colors.green, size: 50),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('OK'),
-            ),
-          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore.collection('payments')
+      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+      .where('customerId', isEqualTo:client.id)
+      .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("No payments found", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)));
+        }
+
+        List<ClientPayment> payments = snapshot.data!.docs.map((doc) {
+          return ClientPayment(
+            customerId: doc['customerId'],
+            name: doc['customerName'],
+            lastPaid: (doc['amount'] as num).toDouble(),
+            paymentDate: (doc['paymentDate'] as Timestamp).toDate(),
+          );
+        }).toList();
+
+        payments.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+
+        return ListView.builder(
+          itemCount: payments.length,
+          itemBuilder: (context, index) {
+            return _buildPaymentCard(payments[index]);
+          },
         );
       },
     );
   }
+
+  Widget _buildPaymentCard(ClientPayment payment) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 8,
+      shadowColor: Colors.grey.withOpacity(0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        title: Text(
+          payment.name,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.blue),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Customer ID: ${payment.customerId}'),
+            Text('Last Paid: PKR ${payment.lastPaid}'),
+            Text('Payment Date: ${DateFormat.yMMMd().format(payment.paymentDate)}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoText(String text, Color color, {double fontSize = 20}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(text, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
 }
 
+class ClientPayment {
+  final int customerId;
+  final String name;
+  final double lastPaid;
+  final DateTime paymentDate;
 
-
+  ClientPayment({
+    required this.customerId,
+    required this.name,
+    required this.lastPaid,
+    required this.paymentDate,
+  });
+}
 
 // directly login uid entered - not complete ui
 // import 'package:cloud_firestore/cloud_firestore.dart';

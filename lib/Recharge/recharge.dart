@@ -29,65 +29,52 @@ class _RechargePageState extends State<RechargePage> {
     fetchClients();
   }
 
-  Future<void> fetchClients() async {
-    try {
-      // Get the current logged-in user
-      User? currentUser = _auth.currentUser;
+void fetchClients() {
+  try {
+    // Get the current logged-in user
+    User? currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      print('No user is currently logged in.');
+      return;
+    }
 
-      if (currentUser == null) {
-        print('No user is currently logged in.');
-        return;
-      }
-
-      // Fetch customers collection from Firestore
-      QuerySnapshot snapshot = await _firestore
-          .collection('customers')
-          .where('selectedCollector', isEqualTo: currentUser.uid)
-          .get();
-
-      // Get the current date
+    // Listen to real-time changes
+    _firestore
+        .collection('customers')
+        .where('selectedCollector', isEqualTo: currentUser.uid)
+        .snapshots()
+        .listen((QuerySnapshot snapshot) async {
       DateTime now = DateTime.now();
       int currentYear = now.year;
       int currentMonth = now.month;
 
-      // Fetch package details for each client
       List<Client> clientList = [];
+
       for (var doc in snapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-        // Fetch package details from the package collection
+        // Fetch package details
         String packageId = data['selectedPackage'] ?? '';
         DocumentSnapshot packageDoc = await _firestore.collection('packages').doc(packageId).get();
 
-        // Extract package details
         String packageName = packageDoc['name'] ?? 'N/A';
         double packagePrice = (packageDoc['price'] ?? 0).toDouble();
-        String packageSize = packageDoc['size'] ?? 'N/A';
 
-        // Fetch discount from the customer data
         double discountPercentage = (data['discount'] ?? 0).toDouble();
-
-        // Calculate the discount amount
         double discountAmount = packagePrice * (discountPercentage / 100);
-
-        // Calculate the final result (packagePrice - discountAmount)
         double monthlyBilling = packagePrice - discountAmount;
 
-        // Fetch lastPaid datetime from the customer data
         Timestamp lastPaidTimestamp = data['lastpay'];
         DateTime lastPaidDate = lastPaidTimestamp.toDate();
         int lastPaidYear = lastPaidDate.year;
         int lastPaidMonth = lastPaidDate.month;
 
-        // Calculate the number of months since the last payment
         int monthsSinceLastPayment = (currentYear - lastPaidYear) * 12 + (currentMonth - lastPaidMonth);
 
-        // Check if the lastPaid date is from the current month
         if (lastPaidYear == currentYear && lastPaidMonth == currentMonth) {
-          // Skip this client as they have already paid for the current month
           continue;
         }
-        // Create Client object
+
         Client client = Client(
           billingid: doc.id.hashCode,
           id: doc.id,
@@ -98,7 +85,7 @@ class _RechargePageState extends State<RechargePage> {
           selectedPackage: packageId,
           packageName: packageName,
           packagePrice: packagePrice,
-          packageSize: packageSize,
+          packageSize: "packageSize",
           pendingMonths: monthsSinceLastPayment,
         );
 
@@ -110,10 +97,11 @@ class _RechargePageState extends State<RechargePage> {
         filteredClients = _filterClients(clientList, activeFilter);
         isLoading = false;
       });
-    } catch (e) {
-      print('Error fetching clients: $e');
-    }
+    });
+  } catch (e) {
+    print('Error fetching clients: $e');
   }
+}
 
   // Filter clients based on the active filter
   List<Client> _filterClients(List<Client> clients, String filter) {
@@ -632,6 +620,7 @@ class ClientDetailsPage extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
+                Navigator.of(context).pop();
                 Navigator.of(context).pop();
               },
               child: Text('OK'),

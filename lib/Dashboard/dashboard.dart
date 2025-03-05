@@ -99,9 +99,9 @@ print(userId);
               ),
               Positioned.fill(
                 child: Align(
-                  alignment: Alignment.topLeft,
+                  alignment: Alignment.centerLeft,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 50, left: 25),
+                    padding: const EdgeInsets.only(top: 70, left: 25),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -127,6 +127,7 @@ print(userId);
                   ),
                 ),
               ),
+          
             ],
           ),
           const SizedBox(height: 16),
@@ -225,9 +226,9 @@ print(userId);
             children: [
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Image.asset(iconPath, height: 50, width: 50),
+                child: Image.asset(iconPath, height: 40, width: 40),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   title,
